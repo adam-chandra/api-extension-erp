@@ -1,0 +1,4 @@
+DROP TABLE IF EXISTS sync.sync_errors;
+DROP TABLE IF EXISTS sync.sync_state;
+DROP SCHEMA IF EXISTS sync;
+DROP SCHEMA IF EXISTS auth;

@@ -1,0 +1,42 @@
+# Per-project compose for running BE in isolation during development.
+# For full-stack orchestration use the root docker-compose.yml.
+#
+# Postgres is NOT defined here — production reads/writes the remote
+# managed database (DB_HOST in .env). Only Redis is bundled because
+# the API requires it and there is no managed instance yet.
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: be-extension-erp-api
+    env_file:
+      - .env
+    # Override REDIS_ADDR to point at the bundled redis container.
+    # Set REDIS_ADDR to a managed host in .env to skip the sidecar.
+    environment:
+      REDIS_ADDR: ${REDIS_ADDR:-redis:6379}
+    ports:
+      - "${API_HOST_PORT:-3000}:8080"
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: be-extension-erp-redis
+    ports:
+      - "${REDIS_HOST_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  redis_data:
