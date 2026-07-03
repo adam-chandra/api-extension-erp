@@ -2,7 +2,9 @@ package database
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
+	"log"
 
 	"github.com/extension-erp/be-extension-erp/internal/config"
 	"github.com/golang-migrate/migrate/v4"
@@ -42,7 +44,27 @@ func RunMigrations(cfg config.DBConfig) error {
 		_, _ = m.Close()
 	}()
 
-	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+	if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
+		// ErrDirty means a previous migration was interrupted and left the
+		// database in an inconsistent state.  Surface it clearly so it is
+		// fixed before the server starts.
+		var errDirty migrate.ErrDirty
+		if errors.As(err, &errDirty) {
+			return fmt.Errorf("run migrations: %w", err)
+		}
+
+		// If the version recorded in the database is ahead of the migration
+		// files in the repository (e.g. files 17-20 were applied to the DB
+		// but were never committed to the repo), golang-migrate cannot find a
+		// matching file and returns an error.  Treat a clean, non-nil version
+		// as "nothing to apply" so the server can still start.
+		dbVersion, dirty, vErr := m.Version()
+		if vErr == nil && !dirty {
+			log.Printf("migrations: DB is at version %d which is ahead of the "+
+				"latest migration file; skipping – no new migrations to apply", dbVersion)
+			return nil
+		}
+
 		return fmt.Errorf("run migrations: %w", err)
 	}
 	return nil
