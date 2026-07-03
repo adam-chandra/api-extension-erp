@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/extension-erp/be-extension-erp/internal/asset"
 	"github.com/extension-erp/be-extension-erp/internal/auth"
 	"github.com/extension-erp/be-extension-erp/internal/finance"
 	"github.com/extension-erp/be-extension-erp/internal/hris"
@@ -11,7 +12,7 @@ import (
 )
 
 // registerRoutes mounts all HTTP routes. Add new modules here.
-func registerRoutes(r *gin.Engine, jwtMgr *jwt.Manager, authH *auth.Handler, financeH *finance.Handler, hrisH *hris.Handler) {
+func registerRoutes(r *gin.Engine, jwtMgr *jwt.Manager, authH *auth.Handler, financeH *finance.Handler, assetH *asset.Handler, hrisH *hris.Handler) {
 	r.GET("/health", func(c *gin.Context) {
 		response.Message(c, "ok")
 	})
@@ -38,6 +39,11 @@ func registerRoutes(r *gin.Engine, jwtMgr *jwt.Manager, authH *auth.Handler, fin
 				fin.GET("/dashboard", financeH.Dashboard)
 				fin.GET("/returns", financeH.Returns)
 				fin.GET("/returns/by-account", financeH.ReturnsByAccount)
+			}
+
+			as := protected.Group("/asset")
+			{
+				as.GET("/dashboard", assetH.Dashboard)
 			}
 
 			hr := protected.Group("/hris")

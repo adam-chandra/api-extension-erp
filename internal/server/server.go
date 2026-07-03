@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/extension-erp/be-extension-erp/internal/asset"
 	"github.com/extension-erp/be-extension-erp/internal/auth"
 	"github.com/extension-erp/be-extension-erp/internal/config"
 	"github.com/extension-erp/be-extension-erp/internal/finance"
@@ -56,11 +57,15 @@ func New(cfg *config.Config, db *gorm.DB, rdb *redis.Client) (*Server, error) {
 	financeSvc := finance.NewService(financeRepo)
 	financeH := finance.NewHandler(financeSvc)
 
+	assetRepo := asset.NewRepository(db)
+	assetSvc := asset.NewService(assetRepo)
+	assetH := asset.NewHandler(assetSvc)
+
 	hrisRepo := hris.NewRepository(db)
 	hrisSvc := hris.NewService(hrisRepo)
 	hrisH := hris.NewHandler(hrisSvc)
 
-	registerRoutes(engine, jwtMgr, authH, financeH, hrisH)
+	registerRoutes(engine, jwtMgr, authH, financeH, assetH, hrisH)
 
 	s := &Server{
 		cfg:    cfg,
