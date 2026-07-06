@@ -6,13 +6,14 @@ import (
 	"github.com/extension-erp/be-extension-erp/internal/finance"
 	"github.com/extension-erp/be-extension-erp/internal/hris"
 	"github.com/extension-erp/be-extension-erp/internal/middleware"
+	"github.com/extension-erp/be-extension-erp/internal/procurement"
 	"github.com/extension-erp/be-extension-erp/pkg/jwt"
 	"github.com/extension-erp/be-extension-erp/pkg/response"
 	"github.com/gin-gonic/gin"
 )
 
 // registerRoutes mounts all HTTP routes. Add new modules here.
-func registerRoutes(r *gin.Engine, jwtMgr *jwt.Manager, authH *auth.Handler, financeH *finance.Handler, assetH *asset.Handler, hrisH *hris.Handler) {
+func registerRoutes(r *gin.Engine, jwtMgr *jwt.Manager, authH *auth.Handler, financeH *finance.Handler, assetH *asset.Handler, hrisH *hris.Handler, procurementH *procurement.Handler) {
 	r.GET("/health", func(c *gin.Context) {
 		response.Message(c, "ok")
 	})
@@ -49,6 +50,13 @@ func registerRoutes(r *gin.Engine, jwtMgr *jwt.Manager, authH *auth.Handler, fin
 			hr := protected.Group("/hris")
 			{
 				hr.GET("/dashboard", hrisH.Dashboard)
+			}
+
+			proc := protected.Group("/procurement")
+			{
+				proc.GET("/dashboard", procurementH.Dashboard)
+				proc.GET("/po-cycle-time-trend", procurementH.POCycleTimeTrend)
+				proc.GET("/purchase-trend-ytd", procurementH.PurchaseTrendYTD)
 			}
 		}
 	}

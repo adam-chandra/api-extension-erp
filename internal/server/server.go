@@ -12,6 +12,7 @@ import (
 	"github.com/extension-erp/be-extension-erp/internal/finance"
 	"github.com/extension-erp/be-extension-erp/internal/hris"
 	"github.com/extension-erp/be-extension-erp/internal/middleware"
+	"github.com/extension-erp/be-extension-erp/internal/procurement"
 	"github.com/extension-erp/be-extension-erp/pkg/cache"
 	"github.com/extension-erp/be-extension-erp/pkg/jwt"
 	"github.com/gin-contrib/cors"
@@ -65,7 +66,11 @@ func New(cfg *config.Config, db *gorm.DB, rdb *redis.Client) (*Server, error) {
 	hrisSvc := hris.NewService(hrisRepo)
 	hrisH := hris.NewHandler(hrisSvc)
 
-	registerRoutes(engine, jwtMgr, authH, financeH, assetH, hrisH)
+	procurementRepo := procurement.NewRepository(db)
+	procurementSvc := procurement.NewService(procurementRepo)
+	procurementH := procurement.NewHandler(procurementSvc)
+
+	registerRoutes(engine, jwtMgr, authH, financeH, assetH, hrisH, procurementH)
 
 	s := &Server{
 		cfg:    cfg,

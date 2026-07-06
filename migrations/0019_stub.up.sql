@@ -1,0 +1,1 @@
+-- stub: migration applied externally before this file existed
