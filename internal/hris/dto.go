@@ -2,48 +2,36 @@ package hris
 
 // DashboardResponse is the payload returned by GET /api/hris/dashboard.
 type DashboardResponse struct {
-	CompanyID       int64               `json:"companyId"`
-	KPI             KPI                 `json:"kpi"`
-	DeptHeadcount   []DeptHeadcount     `json:"deptHeadcount"`
-	Recruitment     []MonthlyCount      `json:"recruitment"`
-	SalaryByDept    []DeptSalary        `json:"salaryByDept"`
-	AttendanceTrend []AttendanceTrendPt `json:"attendanceTrend"`
-	WorkforceTrend  []WorkforceTrendPt  `json:"workforceTrend"`
+CompanyID         int64                 `json:"companyId"`
+KPI               KPI                   `json:"kpi"`
+SCIAMonthly       []SCIAMonthlyPt       `json:"sciaMonthly"`
+AttendanceMonthly []AttendanceMonthlyPt `json:"attendanceMonthly"`
 }
 
-// KPI numbers used by the 4 top tiles.
+// KPI holds the aggregate numbers for the 6 top tiles.
 type KPI struct {
-	TotalEmployees int     `json:"totalEmployees"` // active employees in company
-	AttendanceRate float64 `json:"attendanceRate"` // last full month, %
-	NewHires       int     `json:"newHires"`       // last 12 months
-	TurnoverRate   float64 `json:"turnoverRate"`   // last 12 months: exits/avg headcount, %
+TotalEmployees        int     `json:"totalEmployees"`        // active employees
+AttendanceRateYtd     float64 `json:"attendanceRateYtd"`     // avg rate, current year months
+AttendanceRatePrevYtd float64 `json:"attendanceRatePrevYtd"` // same months, prev year
+TotalSakit            int     `json:"totalSakit"`
+TotalCuti             int     `json:"totalCuti"`
+TotalIzin             int     `json:"totalIzin"`
+TotalAlfa             int     `json:"totalAlfa"`
+TotalTelat            int     `json:"totalTelat"` // YTD late-arrival count
 }
 
-type DeptHeadcount struct {
-	DepartmentID   int64  `json:"departmentId"`
-	DepartmentName string `json:"departmentName"`
-	Count          int    `json:"count"`
+// SCIAMonthlyPt holds approved leave counts per category for one month.
+type SCIAMonthlyPt struct {
+Month string `json:"month"` // YYYY-MM
+Sakit int    `json:"sakit"`
+Cuti  int    `json:"cuti"`
+Izin  int    `json:"izin"`
+Alfa  int    `json:"alfa"`
 }
 
-type MonthlyCount struct {
-	Month string `json:"month"` // YYYY-MM
-	Count int    `json:"count"`
-}
-
-type DeptSalary struct {
-	DepartmentID   int64   `json:"departmentId"`
-	DepartmentName string  `json:"departmentName"`
-	TotalSalary    float64 `json:"totalSalary"`
-}
-
-type AttendanceTrendPt struct {
-	Month string  `json:"month"` // YYYY-MM
-	Rate  float64 `json:"rate"`  // %
-}
-
-type WorkforceTrendPt struct {
-	Month     string `json:"month"` // YYYY-MM
-	Employees int    `json:"employees"`
-	Hires     int    `json:"hires"`
-	Exits     int    `json:"exits"`
+// AttendanceMonthlyPt holds computed attendance rate + late count for one month.
+type AttendanceMonthlyPt struct {
+Month     string  `json:"month"`     // YYYY-MM
+Rate      float64 `json:"rate"`      // %
+LateCount int     `json:"lateCount"` // count of late check-ins
 }

@@ -34,7 +34,7 @@ migrate-up:
 migrate-down:
 	migrate -path migrations -database "$(DB_URL)" down
 
-# create new migration
+# create new migration (timestamp-based, avoids numbering conflicts in team)
 # usage : make migrate-create name=migration_name
 migrate-create:
 ifeq ($(DETECTED_OS),Windows)
@@ -42,7 +42,7 @@ ifeq ($(DETECTED_OS),Windows)
 else
 	@if [ -z "$(name)" ]; then echo "Usage: make migrate-create name=migration_name"; exit 1; fi
 endif
-	migrate create -ext sql -dir migrations -seq $(name)
+	migrate create -ext sql -dir migrations $(name)
 
 # fix if migration error/dirty
 # usage : make migrate-force version=N

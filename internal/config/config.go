@@ -78,8 +78,8 @@ func Load() *Config {
 		},
 		JWT: JWTConfig{
 			Secret:     getEnv("JWT_SECRET", "change-me"),
-			AccessTTL:  time.Duration(getEnvInt("JWT_ACCESS_TTL_MINUTES", 60)) * time.Minute,
-			RefreshTTL: time.Duration(getEnvInt("JWT_REFRESH_TTL_HOURS", 168)) * time.Hour,
+			AccessTTL:  time.Duration(getEnvInt("JWT_ACCESS_TTL_MINUTES", 43200)) * time.Minute,
+			RefreshTTL: time.Duration(getEnvInt("JWT_REFRESH_TTL_HOURS", 720)) * time.Hour,
 		},
 		CORS: CORSConfig{
 			AllowedOrigins: splitCSV(getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:5173")),
