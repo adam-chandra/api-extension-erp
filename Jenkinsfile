@@ -16,8 +16,8 @@ pipeline {
         
         // --- SERVER TUJUAN ---
         DEPLOY_USER  = "root"
-        DEPLOY_HOST  = "89.21.85.2" 
-        DEPLOY_DIR   = "/var/www/html/be-extension-erp"
+        DEPLOY_HOST  = "182.253.236.139" 
+        DEPLOY_DIR   = "/var/www/html/be-extension-erp-dev"
         
         // --- CREDENTIALS ID ---
         DOCKER_CREDS = credentials('docker-hub-login')

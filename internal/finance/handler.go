@@ -100,3 +100,37 @@ func parseCompanyID(c *gin.Context) (int64, bool) {
 	}
 	return id, true
 }
+
+// ConsolidationReport handles POST /api/finance/consolidation/report
+func (h *Handler) ConsolidationReport(c *gin.Context) {
+	var req ConsolidationReportRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "invalid request: "+err.Error())
+		return
+	}
+
+	res, err := h.svc.GetConsolidationReport(c.Request.Context(), req)
+	if err != nil {
+		response.Internal(c, "could not generate consolidation report")
+		return
+	}
+
+	response.OK(c, res)
+}
+
+// EliminationEntries handles POST /api/finance/consolidation/eliminations
+func (h *Handler) EliminationEntries(c *gin.Context) {
+	var req EliminationEntriesRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "invalid request: "+err.Error())
+		return
+	}
+
+	res, err := h.svc.GetEliminationEntries(c.Request.Context(), req)
+	if err != nil {
+		response.Internal(c, "could not load elimination entries")
+		return
+	}
+
+	response.OK(c, res)
+}

@@ -1,0 +1,85 @@
+name: Jenkins Multibranch Trigger
+
+on:
+  pull_request:
+    branches:
+      - development
+      - staging
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+  push:
+    branches:
+      - development
+      - staging
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+env:
+  JENKINS_URL: "https://jenkins-infra.ethos.co.id"
+  JENKINS_USER: "admin"
+  JENKINS_TOKEN: "11babc2649c7c45687b38cc43863ce14c7"
+  JENKINS_JOB: "be-extension-erp"
+  JENKINS_JOB_TOKEN: "be-extension-erp"
+
+jobs:
+  trigger-jenkins:
+    name: Trigger Jenkins Multibranch Build
+    # Hanya jalan saat push ke branch asli (bukan tiap PR sync),
+    # supaya build cuma terjadi sekali per commit yang benar-benar masuk branch.
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Jenkins Branch Build
+        run: |
+          BRANCH="${GITHUB_REF#refs/heads/}"
+          ENCODED_BRANCH="${BRANCH//\//%2F}"
+          JENKINS_BUILD_URL="$JENKINS_URL/job/$JENKINS_JOB/job/$ENCODED_BRANCH/build?token=$JENKINS_JOB_TOKEN"
+
+          echo "==========================================="
+          echo "  TRIGGER JENKINS MULTIBRANCH BUILD"
+          echo "==========================================="
+          echo "Branch         : $BRANCH"
+          echo "Encoded Branch : $ENCODED_BRANCH"
+          echo "Job            : $JENKINS_JOB"
+          echo "Commit         : ${{ github.sha }}"
+          echo "Author         : ${{ github.actor }}"
+          echo "URL            : $JENKINS_URL/job/$JENKINS_JOB/job/$ENCODED_BRANCH/build"
+          echo "==========================================="
+
+          HTTP_STATUS=$(curl -s -o /tmp/resp.txt -w "%{http_code}" \
+            -X POST \
+            --max-time 30 \
+            -u "$JENKINS_USER:$JENKINS_TOKEN" \
+            "$JENKINS_BUILD_URL")
+
+          echo "Jenkins HTTP: $HTTP_STATUS"
+          cat /tmp/resp.txt || true
+
+          if echo "$HTTP_STATUS" | grep -qE "^(200|201|302)$"; then
+            echo "OK: Jenkins multibranch build triggered successfully"
+          else
+            echo "FAIL: Jenkins trigger failed with HTTP $HTTP_STATUS"
+            exit 1
+          fi
+
+      - name: Summary
+        if: success()
+        run: |
+          echo "==========================================="
+          echo "  DEPLOYMENT TRIGGERED"
+          echo "  Branch : ${GITHUB_REF#refs/heads/}"
+          echo "  Job    : $JENKINS_JOB"
+          echo "  Commit : ${{ github.sha }}"
+          echo "  By     : ${{ github.actor }}"
+          echo "==========================================="

@@ -126,6 +126,36 @@ func (s *Service) Dashboard(ctx context.Context, companyID int64, periodCode, cu
 			Unit:    "Hari",
 			Remarks: "Rata-rata waktu penerbitan PO dari PR diselesaikan",
 		},
+		PRNoPO: Metric{
+			Title:   "PR Belum Dibuatkan PO",
+			Value:   metric.PRNoPO,
+			Unit:    "Purchase Request",
+			Remarks: "PR perlu segera diproses menjadi PO",
+		},
+		POIncomplete: Metric{
+			Title:   "PO Belum Diterbitkan",
+			Value:   metric.POIncomplete,
+			Unit:    "Purchase Order",
+			Remarks: "PO masih belum diterbitkan atau belum disetujui oleh Approver.",
+		},
+		PONoReceiving: Metric{
+			Title:   "PO (Belum ada Receiving)",
+			Value:   metric.PONoReceiving,
+			Unit:    "Purchase Order",
+			Remarks: "PO yang sudah diterbitkan namun belum ada penerimaan barang/jasa",
+		},
+		ReceivingCycleTime: Metric{
+			Title:   "Average Receiving Cycle Time",
+			Value:   metric.AvgReceivingCycleDays,
+			Unit:    "Hari",
+			Remarks: "Rata-rata waktu dari PO (selesai) hingga penerimaan barang diselesaikan",
+		},
+		ProcurementCycleTime: Metric{
+			Title:   "Average Procurement Cycle Time",
+			Value:   metric.AvgProcurementCycleDays,
+			Unit:    "Hari",
+			Remarks: "Rata-rata waktu pengadaan dari PR difinalisasi hingga barang/jasa diterima",
+		},
 	}, nil
 }
 
@@ -145,6 +175,38 @@ func (s *Service) POCycleTimeTrend(ctx context.Context, companyID int64, periodC
 	return result, nil
 }
 
+func (s *Service) ReceivingCycleTimeTrend(ctx context.Context, companyID int64, periodCode, customStart, customEnd string) ([]TrendPoint, error) {
+	start, end, err := resolvePOCycleTimeTrendPeriod(periodCode, customStart, customEnd, time.Now())
+	if err != nil {
+		return nil, err
+	}
+	rows, err := s.repo.ReceivingCycleTimeTrend(ctx, companyID, start, end)
+	if err != nil {
+		return nil, fmt.Errorf("receiving cycle time trend: %w", err)
+	}
+	result := make([]TrendPoint, len(rows))
+	for i, r := range rows {
+		result[i] = TrendPoint{Label: r.Month, Value: r.AvgCycleDays}
+	}
+	return result, nil
+}
+
+func (s *Service) ProcurementCycleTimeTrend(ctx context.Context, companyID int64, periodCode, customStart, customEnd string) ([]TrendPoint, error) {
+	start, end, err := resolvePOCycleTimeTrendPeriod(periodCode, customStart, customEnd, time.Now())
+	if err != nil {
+		return nil, err
+	}
+	rows, err := s.repo.ProcurementCycleTimeTrend(ctx, companyID, start, end)
+	if err != nil {
+		return nil, fmt.Errorf("procurement cycle time trend: %w", err)
+	}
+	result := make([]TrendPoint, len(rows))
+	for i, r := range rows {
+		result[i] = TrendPoint{Label: r.Month, Value: r.AvgCycleDays}
+	}
+	return result, nil
+}
+
 func (s *Service) PurchaseTrendYTD(ctx context.Context, companyID int64) ([]YTDPoint, error) {
 	now := time.Now()
 	rows, err := s.repo.PurchaseTrendYTD(ctx, companyID, now.Year(), int(now.Month()))
@@ -156,4 +218,33 @@ func (s *Service) PurchaseTrendYTD(ctx context.Context, companyID int64) ([]YTDP
 		result[i] = YTDPoint{Label: r.Month, YTDThisYear: r.YTDThisYear, YTDLastYear: r.YTDLastYear}
 	}
 	return result, nil
+}
+
+func (s *Service) ListDocuments(ctx context.Context, companyID int64, query ListDocumentsQuery) (*PaginatedDocuments, error) {
+	start, end, err := resolvePeriod(query.PeriodCode, query.CustomStart, query.CustomEnd, time.Now())
+	if err != nil {
+		return nil, err
+	}
+
+	page := query.Page
+	if page < 1 {
+		page = 1
+	}
+	limit := query.Limit
+	if limit < 1 || limit > 100 {
+		limit = 10
+	}
+	offset := (page - 1) * limit
+
+	rows, total, err := s.repo.ListDocuments(ctx, companyID, start, end, query.MetricType, query.Search, offset, limit)
+	if err != nil {
+		return nil, fmt.Errorf("list documents: %w", err)
+	}
+
+	return &PaginatedDocuments{
+		Total: total,
+		Page:  page,
+		Limit: limit,
+		Items: rows,
+	}, nil
 }

@@ -1,41 +1,59 @@
-# Per-project compose for running BE in isolation during development.
-# For full-stack orchestration use the root docker-compose.yml.
-#
-# Postgres is NOT defined here — production reads/writes the remote
-# managed database (DB_HOST in .env). Only Redis is bundled because
-# the API requires it and there is no managed instance yet.
+version: '3.8'
 
 services:
+  # --- API APPLICATION ---
   api:
-    image: ${FULL_IMAGE_NAME:-dockerdevopsethos/be-extension-erp-dev:latest}
     container_name: be-extension-erp-api
+    # PENTING: Gunakan variable ini agar Docker mengambil image yg dipush Jenkins
+    image: ${FULL_IMAGE_NAME:-dockerdevopsethos/be-extension-erp-dev:latest}
+    restart: unless-stopped
+    ports:
+      - "9192:8080"
+
+    # PENTING: Baca konfigurasi dari file .env yang dikirim Jenkins
     env_file:
       - .env
-    # Override REDIS_ADDR to point at the bundled redis container.
-    # Set REDIS_ADDR to a managed host in .env to skip the sidecar.
+
+    # Override environment variables di atas nilai .env jika diperlukan
     environment:
       REDIS_ADDR: ${REDIS_ADDR:-redis:6379}
       APP_PORT: 8080
-    ports:
-      - "9192:8080"
+
     depends_on:
       redis:
         condition: service_healthy
-    restart: unless-stopped
+    networks:
+      - be-extension-network
 
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 40s
+
+  # --- CACHE ---
   redis:
     image: redis:7-alpine
     container_name: be-extension-erp-redis
+    command: redis-server --appendonly yes
     ports:
       - "9193:6379"
     volumes:
       - redis_data:/data
+    networks:
+      - be-extension-network
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 3s
       retries: 5
-    restart: unless-stopped
 
 volumes:
   redis_data:
+    driver: local
+
+networks:
+  be-extension-network:
+    driver: bridge

@@ -55,6 +55,50 @@ func (h *Handler) POCycleTimeTrend(c *gin.Context) {
 	response.OK(c, res)
 }
 
+func (h *Handler) ReceivingCycleTimeTrend(c *gin.Context) {
+	companyID, ok := parseCompanyID(c)
+	if !ok {
+		return
+	}
+	res, err := h.svc.ReceivingCycleTimeTrend(c.Request.Context(), companyID,
+		c.Query("period"), c.Query("start"), c.Query("end"))
+	if err != nil {
+		if errors.Is(err, ErrInvalidPeriod) {
+			response.BadRequest(c, "invalid period")
+			return
+		}
+		if errors.Is(err, ErrInvalidRange) {
+			response.BadRequest(c, "invalid date range")
+			return
+		}
+		response.Internal(c, "could not load receiving cycle time trend")
+		return
+	}
+	response.OK(c, res)
+}
+
+func (h *Handler) ProcurementCycleTimeTrend(c *gin.Context) {
+	companyID, ok := parseCompanyID(c)
+	if !ok {
+		return
+	}
+	res, err := h.svc.ProcurementCycleTimeTrend(c.Request.Context(), companyID,
+		c.Query("period"), c.Query("start"), c.Query("end"))
+	if err != nil {
+		if errors.Is(err, ErrInvalidPeriod) {
+			response.BadRequest(c, "invalid period")
+			return
+		}
+		if errors.Is(err, ErrInvalidRange) {
+			response.BadRequest(c, "invalid date range")
+			return
+		}
+		response.Internal(c, "could not load procurement cycle time trend")
+		return
+	}
+	response.OK(c, res)
+}
+
 func (h *Handler) PurchaseTrendYTD(c *gin.Context) {
 	companyID, ok := parseCompanyID(c)
 	if !ok {
@@ -80,4 +124,41 @@ func parseCompanyID(c *gin.Context) (int64, bool) {
 		return 0, false
 	}
 	return id, true
+}
+
+func (h *Handler) ListDocuments(c *gin.Context) {
+	companyID, ok := parseCompanyID(c)
+	if !ok {
+		return
+	}
+	metricType := c.Query("metric")
+	if metricType == "" {
+		response.BadRequest(c, "metric is required")
+		return
+	}
+	page, _ := strconv.Atoi(c.Query("page"))
+	limit, _ := strconv.Atoi(c.Query("limit"))
+
+	res, err := h.svc.ListDocuments(c.Request.Context(), companyID, ListDocumentsQuery{
+		PeriodCode:  c.Query("period"),
+		CustomStart: c.Query("start"),
+		CustomEnd:   c.Query("end"),
+		MetricType:  metricType,
+		Search:      c.Query("search"),
+		Page:        page,
+		Limit:       limit,
+	})
+	if err != nil {
+		if errors.Is(err, ErrInvalidPeriod) {
+			response.BadRequest(c, "invalid period")
+			return
+		}
+		if errors.Is(err, ErrInvalidRange) {
+			response.BadRequest(c, "invalid date range")
+			return
+		}
+		response.Internal(c, "could not list documents")
+		return
+	}
+	response.OK(c, res)
 }
