@@ -15,27 +15,35 @@ import (
 
 func main() {
 	cfg := config.Load()
+	log.Printf("server: config loaded (env=%s, db=%s:%s)", cfg.App.Env, cfg.DB.Host, cfg.DB.Port)
 
+	log.Println("server: connecting to postgres...")
 	db, err := database.NewPostgres(cfg.DB)
 	if err != nil {
-		log.Fatalf("postgres: %v", err)
+		log.Fatalf("postgres connection failed: %v", err)
 	}
 
 	// auth.* schema is consumed by the BE and populated by worker-erp.
 	// Migrations live here so the BE codebase owns exactly one database.
+	log.Println("server: running migrations...")
 	if err := database.RunMigrations(cfg.DB); err != nil {
-		log.Fatalf("migrations: %v", err)
+		log.Fatalf("migrations failed: %v", err)
 	}
+	log.Println("server: migrations completed")
 
+	log.Println("server: connecting to redis...")
 	rdb, err := database.NewRedis(cfg.Redis)
 	if err != nil {
-		log.Fatalf("redis: %v", err)
+		log.Fatalf("redis connection failed: %v", err)
 	}
+	log.Println("server: redis connected")
 
+	log.Println("server: initializing handlers...")
 	srv, err := server.New(cfg, db, rdb)
 	if err != nil {
-		log.Fatalf("server init: %v", err)
+		log.Fatalf("server init failed: %v", err)
 	}
+	log.Println("server: handlers initialized")
 
 	// Run server in background so we can handle signals.
 	go func() {

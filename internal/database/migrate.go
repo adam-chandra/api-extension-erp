@@ -67,9 +67,35 @@ func ensureSyncSchema(sqlDB *sql.DB) error {
 	// Only create the schema if it doesn't already exist
 	if !exists {
 		if _, err := sqlDB.Exec(`CREATE SCHEMA sync`); err != nil {
+			// If CREATE fails due to permission (SQLSTATE 42501), that's expected
+			// on shared Postgres instances. The schema may already exist but check
+			// failed, or it will be created by admin. Log and continue.
+			if isPermissionDenied(err) {
+				fmt.Printf("WARNING: could not create sync schema (permission denied) - continuing anyway\n")
+				return nil
+			}
 			return fmt.Errorf("create sync schema: %w", err)
 		}
 	}
 
 	return nil
+}
+
+// isPermissionDenied checks if an error is a PostgreSQL permission denied error.
+func isPermissionDenied(err error) bool {
+	if err == nil {
+		return false
+	}
+	errStr := err.Error()
+	// Check for PostgreSQL permission denied error (SQLSTATE 42501)
+	return contains(errStr, "permission denied") || contains(errStr, "42501")
+}
+
+func contains(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
 }
