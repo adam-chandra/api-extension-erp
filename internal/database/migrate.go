@@ -22,7 +22,7 @@ func RunMigrations(cfg config.DBConfig) error {
 	}
 	defer sqlDB.Close()
 
-	if _, err := sqlDB.Exec(`CREATE SCHEMA IF NOT EXISTS sync`); err != nil {
+	if err := ensureSyncSchema(sqlDB); err != nil {
 		return fmt.Errorf("bootstrap sync schema: %w", err)
 	}
 
@@ -45,5 +45,31 @@ func RunMigrations(cfg config.DBConfig) error {
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
 		return fmt.Errorf("run migrations: %w", err)
 	}
+	return nil
+}
+
+// ensureSyncSchema checks if the sync schema exists, and creates it only if needed.
+// This guard prevents CREATE SCHEMA from running when the user lacks database-level
+// CREATE privilege, avoiding SQLSTATE 42501 "permission denied for database" errors.
+func ensureSyncSchema(sqlDB *sql.DB) error {
+	// Check if the sync schema already exists
+	var exists bool
+	err := sqlDB.QueryRow(`
+		SELECT EXISTS(
+			SELECT 1 FROM information_schema.schemata 
+			WHERE schema_name = 'sync'
+		)
+	`).Scan(&exists)
+	if err != nil {
+		return fmt.Errorf("check sync schema existence: %w", err)
+	}
+
+	// Only create the schema if it doesn't already exist
+	if !exists {
+		if _, err := sqlDB.Exec(`CREATE SCHEMA sync`); err != nil {
+			return fmt.Errorf("create sync schema: %w", err)
+		}
+	}
+
 	return nil
 }
