@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"time"
 
 	"github.com/extension-erp/be-extension-erp/internal/config"
 	"github.com/golang-migrate/migrate/v4"
@@ -21,6 +22,10 @@ func RunMigrations(cfg config.DBConfig) error {
 		return fmt.Errorf("open migration connection: %w", err)
 	}
 	defer sqlDB.Close()
+
+	// Set connection timeouts to prevent hanging on unreachable database
+	sqlDB.SetConnMaxLifetime(30 * time.Minute)
+	sqlDB.SetConnMaxIdleTime(5 * time.Minute)
 
 	if err := ensureSyncSchema(sqlDB); err != nil {
 		return fmt.Errorf("bootstrap sync schema: %w", err)

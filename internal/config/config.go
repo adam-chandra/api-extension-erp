@@ -90,7 +90,7 @@ func Load() *Config {
 // PostgresDSN builds a DSN for gorm postgres driver.
 func (d DBConfig) PostgresDSN() string {
 	return fmt.Sprintf(
-		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s TimeZone=UTC",
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s TimeZone=UTC connect_timeout=10",
 		d.Host, d.Port, d.User, d.Password, d.Name, d.SSLMode,
 	)
 }

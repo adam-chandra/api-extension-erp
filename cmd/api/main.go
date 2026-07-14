@@ -45,12 +45,19 @@ func main() {
 	}
 	log.Println("server: handlers initialized")
 
+	// Prepare shutdown channel
+	done := make(chan error, 1)
+
 	// Run server in background so we can handle signals.
 	go func() {
+		log.Println("server: starting HTTP listener...")
 		if err := srv.Run(); err != nil && err.Error() != "http: Server closed" {
-			log.Fatalf("server: %v", err)
+			log.Printf("server error: %v", err)
+			done <- err
 		}
 	}()
+
+	log.Println("server: startup complete, ready for requests")
 
 	// Graceful shutdown.
 	quit := make(chan os.Signal, 1)
